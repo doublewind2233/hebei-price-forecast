@@ -1401,7 +1401,7 @@ function buildTable() {
       <td><span class="period-tag ${p.cls}">${p.label}</span></td>
       <td>
         <input type="number" class="usage-input" id="usage-${h}"
-          placeholder="0.00" min="0" step="0.01"
+          placeholder="0.00" min="0" step="0.01" value=""
           oninput="calcRow(${h}); updateSummary()"
           style="border-color:var(--green);" />
       </td>
