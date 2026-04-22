@@ -198,6 +198,13 @@ header {
   color: var(--gray-600);
   width: 60px;
 }
+.time-range-cell {
+  text-align: center;
+  font-size: 12px;
+  color: var(--gray-500);
+  font-weight: 400;
+  width: 90px;
+}
 .time-range {
   font-size: 11px;
   color: var(--gray-400);
@@ -1397,7 +1404,8 @@ function buildTable() {
     
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="hour-cell">${h}<div class="time-range">${String(h-1).padStart(2,'0')}:00-${String(h).padStart(2,'0')}:00</div></td>
+      <td class="hour-cell">${h}</td>
+      <td class="time-range-cell">${String(h-1).padStart(2,'0')}:00-${String(h).padStart(2,'0')}:00</td>
       <td><span class="period-tag ${p.cls}">${p.label}</span></td>
       <td>
         <input type="number" class="usage-input" id="usage-${h}"
