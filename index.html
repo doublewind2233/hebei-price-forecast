@@ -779,6 +779,7 @@ footer {
         <label>
           预测月份
           <input type="month" id="inputMonth" />
+          <div class="month-hint" id="usageHint" style="font-size:12px; color:#666; margin-top:4px;"></div>
         </label>
         <label>
           售电公司
@@ -1363,13 +1364,30 @@ function getPeriodForHour(h, month = selectedMonth) {
   return periodInfo || { label: '平段', cls: 'flat' };
 }
 
+// 辅助函数：获取上月月份字符串
+function getPreviousMonth(monthStr) {
+  const [year, month] = monthStr.split('-').map(Number);
+  let prevYear = year;
+  let prevMonth = month - 1;
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear = year - 1;
+  }
+  return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
+}
+
 function loadPriceDataForMonth(month) {
-  // month 格式: '2026-03'
+  // month 格式: '2026-03'（预测月份）
   selectedMonth = month;
-  // 加载国网电价
+  
+  // 1. 国网电价：使用预测月份的数据（因为国网每月发布下月代理购电价）
   gridPriceData = PRESET_GRID_PRICES[month] || null;
-  // 加载市场传导价格，如果没有当前月份数据，使用3月数据作为默认
-  marketPriceData = PRESET_MARKET_PRICES[month] || PRESET_MARKET_PRICES['2026-03'] || null;
+  
+  // 2. 市场传导价格：使用上月数据（因为市场传导价是上月数据）
+  const prevMonth = getPreviousMonth(month);
+  marketPriceData = PRESET_MARKET_PRICES[prevMonth] || null;
+  // 如果上月数据缺失，不自动使用默认数据，因为这样会误导预测
+  // 用户需要明确知道数据缺失
   
   // 更新全局变量
   window.marketPriceData = marketPriceData;
@@ -1378,7 +1396,9 @@ function loadPriceDataForMonth(month) {
   // 返回数据状态
   return {
     hasMarket: marketPriceData && marketPriceData.length === 24,
-    hasGrid: gridPriceData && gridPriceData.length === 24
+    hasGrid: gridPriceData && gridPriceData.length === 24,
+    marketMonth: prevMonth,
+    gridMonth: month
   };
 }
 
@@ -1395,7 +1415,21 @@ function buildTable() {
   }
   
   // 加载价格数据
-  const { hasMarket, hasGrid } = loadPriceDataForMonth(month);
+  const { hasMarket, hasGrid, marketMonth, gridMonth } = loadPriceDataForMonth(month);
+  
+  // 更新用电量上传提示
+  const usageHintEl = document.getElementById('usageHint');
+  if (usageHintEl) {
+    usageHintEl.textContent = `请上传${marketMonth}的用电量数据`;
+  }
+  
+  // 检查数据完整性
+  if (!hasMarket) {
+    showToast(`${marketMonth} 月的市场传导价格数据暂缺，无法生成预测`, 'error');
+  }
+  if (!hasGrid) {
+    showToast(`${gridMonth} 月的国网代理购电价数据暂缺，无法生成预测`, 'error');
+  }
   
   for (let h = 1; h <= 24; h++) {
     const p = getPeriodForHour(h, month);
@@ -1421,11 +1455,7 @@ function buildTable() {
     tbody.appendChild(tr);
   }
   
-  // 如果使用默认数据，显示提示
-  if (month !== '2026-03' && !PRESET_MARKET_PRICES[month]) {
-    showToast(`${month} 月的市场传导价格数据暂缺，使用3月数据作为参考`, 'info');
-  }
-  // 国网电价总是可用的（通过算法生成）
+
   
   // 初始化计算
   updateSummary();
@@ -1876,6 +1906,14 @@ window.addEventListener('load', function() {
   
   // 直接进入销售页面
   switchPage('sales');
+  
+  // 监听月份选择变化
+  const monthInput = document.getElementById('inputMonth');
+  if (monthInput) {
+    monthInput.addEventListener('change', function() {
+      buildTable();
+    });
+  }
 });
 </script>
 </body>
